@@ -244,11 +244,12 @@ I will give you some advice about life. Eat more roughage; Do more than others e
 补全下面的程序，以完成Huffman编码压缩文件
 
 ```c
-#include  <stdio.h>
-#include  <string.h>
-#include  <stdlib.h>
-#define  MAXSIZE  32
-struct tnode {
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#define MAXSIZE 32
+struct tnode
+{
     char c;                
     int weight;
     struct tnode *left, *right;
@@ -263,10 +264,10 @@ void createHTree();
 void makeHCode();
 void atoHZIP();
 
-void  print1();
-void  print2(struct  tnode  *p);
-void  print3();
-void  print4();
+void print1();
+void print2(struct tnode *p);
+void print3();
+void print4();
 
 int main()
 {
