@@ -237,3 +237,252 @@ I will give you some advice about life. Eat more roughage; Do more than others e
 
 ![图片4.png](https://judge.buaa.edu.cn/userfiles/image/2021/1619509744054086833.png)
 
+# 6 片段编程
+
+## 6.0 问题描述
+
+补全下面的程序，以完成Huffman编码压缩文件
+
+```c
+#include  <stdio.h>
+#include  <string.h>
+#include  <stdlib.h>
+#define  MAXSIZE  32
+struct tnode {
+    char c;                
+    int weight;
+    struct tnode *left, *right;
+};
+int Ccount[128] = {0};
+struct tnode *Root = NULL;
+char HCode[128][MAXSIZE]={{0}};  
+int Step = 0;
+FILE *Src, *Obj;
+void statCount();
+void createHTree();
+void makeHCode();
+void atoHZIP();
+
+void  print1();
+void  print2(struct  tnode  *p);
+void  print3();
+void  print4();
+
+int main()
+{
+    if((Src=fopen("input.txt","r"))==NULL)
+    {
+    	fprintf(stderr, "%s open failed!\n", "input.txt");
+        return 1;
+    }
+    if((Obj=fopen("output.txt","w"))==NULL)
+    {
+        fprintf(stderr, "%s open failed!\n", "output.txt");
+        return 1;
+    }
+    scanf("%d", &Step);  
+    statCount();
+    (Step==1) ? print1() : 1;       
+    createHTree();
+    (Step==2) ? print2(Root) : 2;
+    makeHCode();
+    (Step==3) ? print3() : 3;
+    (Step>=4) ? atoHZIP(), print4() : 4;
+    fclose(Src);
+    fclose(Obj);
+    return 0;
+}
+```
+
+## 6.1 片段1
+
+```c
+void statCount()
+{
+    char ch;
+    while ((ch = fgetc(Src)) != EOF)
+    {
+        Ccount[ch]++;
+    }
+    Ccount[0] = 1;
+}
+```
+
+## 6.2 片段2
+
+```c
+struct ListNode
+{
+    struct tnode *tree;
+    struct ListNode *next;
+};
+struct TimesOfChar
+{
+    char ch;
+    int times;
+};
+int cmp(const void *_a, const void *_b)
+{
+    struct TimesOfChar *a = (struct TimesOfChar*)_a;
+    struct TimesOfChar *b = (struct TimesOfChar*)_b;
+    if (a->times == b->times)
+    {
+        return a->ch - b->ch;
+    }
+    else
+        return a->times - b->times;
+}
+struct ListNode *initializeForest()
+{
+    struct TimesOfChar chars[128];
+    for (int i = 0; i < 128; i++)
+    {
+        chars[i].ch = (char)i;
+        chars[i].times = Ccount[i];
+    }
+    qsort(chars, 128, sizeof(struct TimesOfChar), cmp);
+    struct ListNode *head = malloc(sizeof(struct ListNode));
+    struct ListNode *rare = head;
+    head->tree = malloc(sizeof(struct tnode));
+    struct tnode *temp = head->tree;
+    int i = 0;
+    while (chars[i].times == 0)
+        i++;
+    temp->c = chars[i].ch;
+    temp->weight = chars[i].times;
+    temp->left = temp->right = NULL;
+    for (i++; i < 128; i++)
+    {
+        rare->next = malloc(sizeof(struct ListNode));
+        rare = rare->next;
+        rare->tree = malloc(sizeof(struct tnode));
+        temp = rare->tree;
+        temp->c = chars[i].ch;
+        temp->weight = chars[i].times;
+        temp->left = temp->right = NULL;
+    }
+    rare->next = NULL;
+    return head;
+}
+struct ListNode* insert(struct ListNode* head, struct tnode* val)
+{
+    if (head == NULL){
+        head = malloc(sizeof(struct tnode));
+        head->tree = val;
+        head->next = NULL;
+        return head;
+    }
+    struct ListNode* newCell;
+    if (val->weight < head->tree->weight){
+        newCell = malloc(sizeof(struct ListNode));
+        newCell->tree = val;
+        newCell->next = head;
+        return newCell;
+    }
+    struct ListNode* temp = head;
+    while (temp->next){
+        if (val->weight >= temp->next->tree->weight){
+            temp = temp->next;
+        }
+        else{
+            newCell = malloc(sizeof(struct ListNode));
+            newCell->tree = val;
+            newCell->next = temp->next;
+            temp->next = newCell;
+            return head;
+        }
+    }
+    temp->next = malloc(sizeof(struct ListNode));
+    temp = temp->next;
+    temp->next = NULL;
+    temp->tree = val;
+    return head;
+}
+void createHTree()
+{
+    struct tnode* leftTree;
+    struct tnode* rightTree;
+    struct tnode* newRoot;
+    struct ListNode* temp;
+    struct ListNode* forest = initializeForest();
+    Root = NULL;
+    while (forest->next){
+        leftTree = forest->tree;
+        rightTree = forest->next->tree;
+        temp = forest;
+        forest = forest->next;
+        free(temp);
+        temp = forest;
+        forest = forest->next;
+        free(temp);
+        newRoot = malloc(sizeof(struct tnode));
+        newRoot->c = -1;
+        newRoot->weight = leftTree->weight + rightTree->weight;
+        newRoot->left = leftTree;
+        newRoot->right = rightTree;
+        forest = insert(forest, newRoot);
+    }
+    Root = forest->tree;
+}
+```
+
+## 6.3 片段3
+
+```c
+void dfs(struct tnode* node, char* password, int position)
+{
+    if (node->c >= 0){
+        int i;
+        for (i = 0; i < position; i++){
+            HCode[(int)node->c][i] = password[i] + '0';
+        }
+        HCode[(int)node->c][i] = 0;
+        return;
+    }
+    password[position] = 0;
+    dfs(node->left, password, position + 1);
+    password[position] = 1;
+    dfs(node->right, password, position + 1);
+}
+void makeHCode()
+{
+    char password[MAXSIZE];
+    dfs(Root, password, 0);
+}
+```
+
+## 6.4 片段4
+
+```c
+void atoHZIP()
+{
+    char ascii;
+    unsigned char waitToPrint = 0;
+    char pos = 7;
+    rewind(Src);
+    while ((ascii = fgetc(Src)) != EOF){
+        for (int i = 0; HCode[(int)ascii][i]; i++){
+            waitToPrint = waitToPrint ^ ((HCode[(int)ascii][i] - '0') << pos--);
+            if (pos < 0){
+                fputc(waitToPrint, Obj);
+                printf("%x", waitToPrint);
+                pos = 7;
+                waitToPrint = 0;
+            }
+        }
+    }
+    for (int i = 0; HCode[0][i]; i++){
+        waitToPrint = waitToPrint ^ ((HCode[0][i] - '0') << pos--);
+        if (pos < 0){
+            fputc(waitToPrint, Obj);
+            printf("%x", waitToPrint);
+            pos = 7;
+            waitToPrint = 0;
+        }
+    }
+    if (pos != 7){
+        fputc(waitToPrint, Obj);
+        printf("%x", waitToPrint);
+    }
+}
+```
